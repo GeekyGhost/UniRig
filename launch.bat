@@ -50,12 +50,40 @@ if not exist "requirements.txt" (
 echo Installing requirements from requirements.txt...
 echo.
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+
+:: Create temporary requirements file without problematic packages
+echo Creating filtered requirements file...
+type nul > requirements_filtered.txt
+for /f "usebackq delims=" %%a in ("requirements.txt") do (
+    echo %%a | findstr /i "bpy" >nul
+    if errorlevel 1 (
+        echo %%a >> requirements_filtered.txt
+    ) else (
+        echo Skipping bpy package - will be handled separately
+    )
+)
+
+:: Install filtered requirements
+python -m pip install -r requirements_filtered.txt
 if errorlevel 1 (
-    echo ERROR: Failed to install requirements.
+    echo ERROR: Failed to install basic requirements.
     echo You may need to run install_special_requirements.bat first.
+    del requirements_filtered.txt 2>nul
     pause
     exit /b 1
+)
+
+:: Clean up temporary file
+del requirements_filtered.txt 2>nul
+
+:: Try to install bpy separately with fallback
+echo.
+echo Installing Blender Python (bpy) package...
+python -m pip install bpy==4.2 2>nul
+if errorlevel 1 (
+    echo WARNING: Could not install bpy==4.2 from pip.
+    echo This is normal on Windows. Blender functionality may be limited.
+    echo For full Blender support, install Blender separately and use its Python.
 )
 echo.
 echo Requirements installed successfully.

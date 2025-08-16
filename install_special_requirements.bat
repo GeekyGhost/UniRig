@@ -142,18 +142,44 @@ if errorlevel 1 (
 )
 echo.
 
+:: Install Blender Python (bpy) package
+echo Installing Blender Python (bpy) package...
+python -m pip install bpy==4.2 2>nul
+if errorlevel 1 (
+    echo WARNING: Could not install bpy==4.2 from pip.
+    echo.
+    echo Trying alternative installation methods...
+    
+    :: Try installing fake-bpy-module as a fallback for development
+    python -m pip install fake-bpy-module-4.2 2>nul
+    if errorlevel 1 (
+        echo WARNING: Alternative bpy installation also failed.
+        echo.
+        echo SOLUTION OPTIONS:
+        echo 1. Install Blender from https://www.blender.org/download/
+        echo 2. Use Blender's built-in Python for VRM functionality
+        echo 3. Continue without Blender support (limited VRM functionality)
+    ) else (
+        echo Installed fake-bpy-module for development (limited functionality).
+    )
+) else (
+    echo bpy package installed successfully.
+)
+echo.
+
 :: Install Blender addon (optional)
 echo Installing Blender VRM addon...
 if exist "blender\add-on-vrm-v2.20.77_modified.zip" (
-    python -c "import bpy, os; bpy.ops.preferences.addon_install(filepath=os.path.abspath('blender/add-on-vrm-v2.20.77_modified.zip'))" 2>nul
-    if errorlevel 1 (
-        echo WARNING: Failed to install Blender addon. This is optional for VRM support.
-        echo You can install it manually later if needed.
-    ) else (
-        echo Blender VRM addon installed successfully.
-    )
+    python -c "try:
+import bpy, os
+bpy.ops.preferences.addon_install(filepath=os.path.abspath('blender/add-on-vrm-v2.20.77_modified.zip'))
+print('Blender VRM addon installed successfully.')
+except Exception as e:
+print(f'Warning: Could not install Blender addon: {e}')
+print('This is optional for VRM support.')" 2>nul
 ) else (
     echo WARNING: Blender addon file not found. Skipping VRM addon installation.
+    echo You can install it manually later from: blender/add-on-vrm-v2.20.77_modified.zip
 )
 echo.
 
@@ -208,6 +234,16 @@ if errorlevel 1 (
     echo WARNING: torch_scatter not available. Some features may not work.
 ) else (
     echo torch_scatter verification successful.
+)
+echo.
+
+echo Testing Blender Python (bpy)...
+python -c "import bpy; print('bpy available')" 2>nul
+if errorlevel 1 (
+    echo WARNING: bpy not available. VRM and Blender features will be limited.
+    echo Consider installing Blender separately for full functionality.
+) else (
+    echo bpy verification successful.
 )
 echo.
 
